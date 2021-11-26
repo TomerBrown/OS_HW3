@@ -1,0 +1,12 @@
+#!/bin/bash
+
+make
+sudo insmod message_slot.ko
+gcc -O3 -Wall -std=c11 tester2.c -o tester2
+
+sudo mknod /dev/msgslot1 c 240 1
+sudo chmod o+rw /dev/msgslot1
+./tester2 /dev/msgslot1
+
+sudo rm /dev/msgslot1
+sudo rmmod message_slot.ko
