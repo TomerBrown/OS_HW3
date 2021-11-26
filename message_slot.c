@@ -4,6 +4,7 @@
 #undef MODULE
 #define MODULE
 
+#include "message_slot.h"
 
 // include everything neccessary for the module to run
 #include <linux/kernel.h>
@@ -15,7 +16,7 @@
 #include <linux/string.h> 
 #include <linux/errno.h>
 #include  <linux/slab.h>
-#include <message_slot.h>
+
 MODULE_LICENSE("GPL");
 
 
