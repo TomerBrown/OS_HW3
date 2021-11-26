@@ -1,0 +1,44 @@
+#!/bin/bash
+
+make
+sudo insmod message_slot.ko
+sudo mknod /dev/slot1 c 240 1
+sudo chmod 777 /dev/slot1
+lsmod | grep message
+
+gcc message_sender.c -o message_sender.out
+gcc message_reader.c -o message_reader.out
+./message_sender.out /dev/slot1 1 "Hello"
+./message_reader.out /dev/slot1 1
+echo " "
+
+./message_sender.out /dev/slot1 1 "World!"
+./message_reader.out /dev/slot1 1
+echo " "
+
+./message_sender.out /dev/slot1 1 "Hopefully grade will be: "
+./message_reader.out /dev/slot1 1
+echo " "
+./message_sender.out /dev/slot1 1 100
+./message_reader.out /dev/slot1 1
+echo " "
+./message_sender.out /dev/slot1 1 "The next one should be error because it does not exists"
+./message_reader.out /dev/slot1 1
+echo " "
+
+./message_sender.out /dev/slot5 5 "The next one should be error because it does not exists"
+
+
+
+
+
+
+
+
+
+
+sudo rmmod message_slot
+cd /dev
+sudo rm slot1
+cd
+cd ./Code/OS_HW3
