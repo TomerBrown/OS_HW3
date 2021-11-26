@@ -19,7 +19,7 @@ int main (int argc ,char *argv[]){
         return 1;
     }
     
-    ioctl(MAJOR_NUMBER,MSG_SLOT_CHANNEL,channel_id);
+    ioctl(fd,MSG_SLOT_CHANNEL,channel_id);
     read(fd, message, MESSAGE_MAX_LEN);
     printf("%s",message);
     close (fd);

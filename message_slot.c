@@ -174,6 +174,7 @@ void printList(SlotList* lst){
 
 /*=======================================  Variables Used Globally by the Module ========================================*/
 
+/*The linked list to store all info*/
 static SlotList slots_lst;
 
 
@@ -209,10 +210,13 @@ static int device_open( struct inode* inode, struct file*  file ) {
 }
 
 static ssize_t device_ioctl (struct file* fd , unsigned int control_command , unsigned long commandParameter){
-    int minorNumber;
     MessageNode* messageNode;
+    int* channelID;
 
     printk("Inside device_ioctl():  controlcommand = %d, commandParameter = %ld",control_command,commandParameter);
+    channelID = kmalloc(1,sizeof(int));
+    *channelID = commandParameter;
+
     if (control_command != MSG_SLOT_CHANNEL){
         printk(KERN_ERR "ioctl isn't MSG_SLOT_CHANNEL\n");
         return -EINVAL;
@@ -222,17 +226,16 @@ static ssize_t device_ioctl (struct file* fd , unsigned int control_command , un
         printk(KERN_ERR "ioctl control channel is 0\n");
         return -EINVAL;
     }
+    fd->private_data = (void*) (channelID);
 
-    minorNumber = iminor(fd->f_inode);
-    printk("ioctl: minor number is : %d",minorNumber);
-    messageNode = findByMinorNumber(&slots_lst , minorNumber);
+    printk("ioctl: minor number is : %ld",commandParameter);
+    messageNode = findByMinorNumber(&slots_lst , commandParameter);
     if (messageNode == NULL){
-        printk(KERN_ERR "Slot wasn't opened yet \n");
-        return -EINVAL;
+        appendMessage(&slots_lst,"",0,commandParameter);
     }
     printk("ioctl - message node found successfully");
 
-    fd->private_data = (void*) (&commandParameter);
+    
 
     printk("fd->private data is: %d" , *(int*)(fd->private_data));
     return SUCCESSFUL;
@@ -244,8 +247,15 @@ static ssize_t device_read (struct file* fd, char* buffer , size_t buffer_size, 
     MessageNode* node;
 
     printk("Inside device_read()");
-
-    minorNumber =  iminor(fd->f_inode);
+    if (fd->private_data==NULL){
+        return -EINVAL;
+    }
+    else{
+        minorNumber =  *(int*)(fd->private_data);
+        if (minorNumber<=0){
+            return -EINVAL;
+        }
+    }
     printk("read - Minor number is: %d",minorNumber);
     node = findByMinorNumber(&slots_lst , minorNumber);
 
@@ -286,8 +296,14 @@ static ssize_t device_write (struct file* fd, const char* buffer , size_t buffer
     MessageNode* node;
 
     printk("Inside device_write()");
-
-    minorNumber = iminor(fd->f_inode);
+    if (fd->private_data==NULL){
+        if (minorNumber<=0){
+            return -EINVAL;
+        }
+    }
+    else{
+        minorNumber =  *(int*)(fd->private_data);
+    } 
     printk("write- minor number is: %d",minorNumber);
     node = findByMinorNumber(&slots_lst , minorNumber);
 
