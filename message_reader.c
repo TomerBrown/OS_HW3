@@ -1,6 +1,4 @@
-#define MSG_SLOT_CHANNEL _IOW(MAJOR_NUMBER, 0, unsigned long)
-#define MAJOR_NUMBER 240
-#define MESSAGE_MAX_LEN 128
+#include "message_slot.h"
 
 #include <stdlib.h>
 #include <stdio.h>
