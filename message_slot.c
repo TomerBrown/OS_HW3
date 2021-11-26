@@ -1,11 +1,3 @@
-// todo: move all of these defines to the header file
-#include <linux/ioctl.h>
-#define MAJOR_NUMBER 240
-#define MESSAGE_MAX_LEN 128
-#define DEVICE_NAME "message_slot"
-#define SUCCESSFUL 0
-#define MSG_SLOT_CHANNEL _IOW(MAJOR_NUMBER, 0, unsigned long)
-
 
 #undef __KERNEL__
 #define __KERNEL__
@@ -23,7 +15,7 @@
 #include <linux/string.h> 
 #include <linux/errno.h>
 #include  <linux/slab.h>
-
+#include <message_slot.h>
 MODULE_LICENSE("GPL");
 
 
@@ -190,15 +182,27 @@ static int device_open( struct inode* inode, struct file*  file ) {
     unsigned int minorNumber;
     MessageNode* messageNode;
 
+    printk("Inside device_open()");
+
+
     minorNumber = iminor(inode);
+    printk("open - Minor number is: %d",minorNumber);
     messageNode = findByMinorNumber(&slots_lst, minorNumber);
 
     if (messageNode == NULL){
+        printk("open - Did not find a message Node with minor number %d so created a new one",minorNumber);
         //It means that the needed node for minor number doesn't excists - then create a blank one
         if (appendMessage(&slots_lst , "" , 0 , minorNumber)<0){
             printk(KERN_ERR "Error in allocating memory for the new slot");
             return -1;
         }
+    }
+
+    if (findByMinorNumber(&slots_lst, minorNumber)!= NULL){
+        printk("open was successful! - node is in the Message List");
+    }
+    else{
+        printk("Error in appending the message slot to list");
     }
     return SUCCESSFUL;
 }
@@ -207,24 +211,29 @@ static ssize_t device_ioctl (struct file* fd , unsigned int control_command , un
     int minorNumber;
     MessageNode* messageNode;
 
+    printk("Inside device_ioctl():  controlcommand = %d, commandParameter = %ld",control_command,commandParameter);
     if (control_command != MSG_SLOT_CHANNEL){
         printk(KERN_ERR "ioctl isn't MSG_SLOT_CHANNEL\n");
         return -EINVAL;
     }
+
     if (commandParameter== 0){
         printk(KERN_ERR "ioctl control channel is 0\n");
         return -EINVAL;
     }
 
-    minorNumber = *(int*)(fd->private_data);
+    minorNumber = iminor(fd->f_inode);
+    printk("ioctl: minor number is : %d",minorNumber);
     messageNode = findByMinorNumber(&slots_lst , minorNumber);
-
     if (messageNode == NULL){
         printk(KERN_ERR "Slot wasn't opened yet \n");
         return -EINVAL;
     }
+    printk("ioctl - message node found successfully");
 
     fd->private_data = (void*) (&commandParameter);
+
+    printk("fd->private data is: %d" , *(int*)(fd->private_data));
     return SUCCESSFUL;
 }
 
@@ -233,19 +242,28 @@ static ssize_t device_read (struct file* fd, char* buffer , size_t buffer_size, 
     int i;
     MessageNode* node;
 
-    minorNumber =  *(int*)(fd->private_data);
+    printk("Inside device_read()");
+
+    minorNumber =  iminor(fd->f_inode);
+    printk("read - Minor number is: %d",minorNumber);
     node = findByMinorNumber(&slots_lst , minorNumber);
 
     if (node==NULL){
         //Such file as requested does not exsits
+        printk(KERN_ERR "No such slot exists");
         return -EINVAL;
+    }
+    else{
+        printk("Read - Node found successfully");
     }
 
     if (node->len == 0){
+        printk (KERN_ERR "no message to be read inside slot");
         return -EWOULDBLOCK;
     }
 
     if (buffer_size < node->len){
+        printk (KERN_ERR "Not enough space in the buffer for the message");
         return -ENOSPC;
     }
 
@@ -257,6 +275,7 @@ static ssize_t device_read (struct file* fd, char* buffer , size_t buffer_size, 
         }
     }
     //At the end i should be exactly how many charachters read.
+    printk("Read - read %d letters",i);
     return i;
 }
 
@@ -265,7 +284,10 @@ static ssize_t device_write (struct file* fd, const char* buffer , size_t buffer
     int i;
     MessageNode* node;
 
-    minorNumber = *(int*)(fd->private_data);
+    printk("Inside device_write()");
+
+    minorNumber = iminor(fd->f_inode);
+    printk("write- minor number is: %d",minorNumber);
     node = findByMinorNumber(&slots_lst , minorNumber);
 
     if (buffer_size<= 0 || buffer_size >128){
@@ -275,6 +297,9 @@ static ssize_t device_write (struct file* fd, const char* buffer , size_t buffer
     if (node== NULL){
         return -EINVAL;
     }
+    else{
+        printk("write - node found successfully");
+    }
 
     for (i=0;i<buffer_size;i++){
         if (get_user(node->message[i],&buffer[i])<0){
@@ -283,7 +308,7 @@ static ssize_t device_write (struct file* fd, const char* buffer , size_t buffer
         }
     }
     node->len = buffer_size;
-
+    printk("Succesfully writen the following.\n\tmessage: %s\n\tlength: %d",node->message,node->len);
     return i;
 }
 
