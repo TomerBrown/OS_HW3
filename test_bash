@@ -5,7 +5,9 @@ sudo insmod message_slot.ko
 sudo mknod /dev/slot1 c 240 1
 sudo chmod 777 /dev/slot1
 lsmod | grep message
-
+echo ------------------------------------------------------
+echo "First Slot message input and output"
+echo ------------------------------------------------------
 gcc message_sender.c -o message_sender.out
 gcc message_reader.c -o message_reader.out
 ./message_sender.out /dev/slot1 1 "Hello"
@@ -26,13 +28,45 @@ echo " "
 ./message_reader.out /dev/slot1 1
 echo " "
 
-./message_sender.out /dev/slot5 5 "The next one should be error because it does not exists"
+./message_sender.out /dev/slot5 5 "BLA BLA BLA"
+
+./message_sender.out /dev/slot1 1 "Last Message - from slot1"
+echo " "
+./message_reader.out /dev/slot1 1
+echo ""
+echo ------------------------------------------------------
+echo "Second device number 2 "
+echo ------------------------------------------------------
+sudo mknod /dev/slot2 c 240 2
+sudo chmod 777 /dev/slot2
 
 
+./message_sender.out /dev/slot2 2 "Hello"
+./message_reader.out /dev/slot2 2
+echo " "
+
+./message_sender.out /dev/slot2 2 "World!"
+./message_reader.out /dev/slot2 2
+echo " "
+
+./message_sender.out /dev/slot2 2 "Hopefully grade will be: "
+./message_reader.out /dev/slot2 2
+echo " "
+./message_sender.out /dev/slot2 2 100
+./message_reader.out /dev/slot2 2
+echo " "
+./message_sender.out /dev/slot2 2 "The next one should be error because it does not exists"
+./message_reader.out /dev/slot2 2
+echo " "
 
 
+./message_sender.out /dev/slot5 5 "Bla Bla Bla"
 
-
+echo ------------------------------------------------------
+echo "Now reading from slot1 should not have change"
+echo ------------------------------------------------------
+./message_reader.out /dev/slot1 1
+echo ""
 
 
 
