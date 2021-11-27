@@ -23,9 +23,11 @@ int main (int argc ,char *argv[]){
 
     int ioc = ioctl(fd,MSG_SLOT_CHANNEL,channel_id);
     if (ioc<0){
-        printf ("Error in ioctl() %s \n", strerror(errno));
+        perror ("Error in ioctl()");
     }
-    write(fd, message_to_pass, message_len);
+    if (write(fd, message_to_pass, message_len)<0){
+        perror ("Error in Write()");
+    }
     close (fd);
     return 0;
 }
